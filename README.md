@@ -20,7 +20,7 @@ Expected response: `{ "status": "ok", "db": { "state": "connected", ... }, ... }
 
 ## Mongo
 
-Connects to local Docker Mongo via `MONGO_URI` (see `.env.example`). Default DB name is `fids-screen-editor-dev` so we don't collide with dcmm-backend's collections on the same instance.
+Connects to local Docker Mongo via `MONGO_URI` (see `.env.example`). Default DB name is `screen-editor` so we don't collide with dcmm-backend's collections on the same instance.
 
 ## Roadmap (this repo)
 

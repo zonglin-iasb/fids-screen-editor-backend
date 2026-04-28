@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { MongooseModule } from '@nestjs/mongoose'
 import { HealthModule } from './health/health.module'
+import { TemplatesModule } from './templates/templates.module'
 
 /**
  * AppModule — composition root. Loads .env globally, opens a Mongoose
@@ -25,6 +26,7 @@ import { HealthModule } from './health/health.module'
       }),
     }),
     HealthModule,
+    TemplatesModule,
   ],
 })
 export class AppModule {}
