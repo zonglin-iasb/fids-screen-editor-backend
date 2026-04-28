@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   Param,
+  Patch,
   Post,
   Put,
   UsePipes,
@@ -19,6 +20,10 @@ import {
   updateTemplateSchema,
   type UpdateTemplateDto,
 } from './dto/update-template.dto'
+import {
+  setStatusSchema,
+  type SetStatusDto,
+} from './dto/set-status.dto'
 
 /**
  * TemplatesController — REST surface mirroring the editor's local
@@ -61,6 +66,14 @@ export class TemplatesController {
     @Body(new ZodValidationPipe(updateTemplateSchema)) dto: UpdateTemplateDto,
   ): Promise<SavedTemplateDto> {
     return this.templates.update(id, dto)
+  }
+
+  @Patch(':id/status')
+  setStatus(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(setStatusSchema)) dto: SetStatusDto,
+  ): Promise<SavedTemplateDto> {
+    return this.templates.setStatus(id, dto.status)
   }
 
   @Delete(':id')

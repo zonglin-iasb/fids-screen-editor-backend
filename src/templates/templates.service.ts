@@ -87,6 +87,19 @@ export class TemplatesService {
     return { meta: toMeta(doc), template: doc.body }
   }
 
+  async setStatus(id: string, status: TemplateStatus): Promise<SavedTemplateDto> {
+    const doc = await this.findByIdOrThrow(id)
+    if (doc.status === status) {
+      // No-op transition still returns the current doc; keeps the
+      // toolbar's Publish button idempotent if the user double-clicks.
+      return { meta: toMeta(doc), template: doc.body }
+    }
+    doc.status = status
+    doc.publishedAt = status === 'published' ? new Date() : null
+    await doc.save()
+    return { meta: toMeta(doc), template: doc.body }
+  }
+
   async remove(id: string): Promise<void> {
     const result = await this.model.deleteOne({ _id: this.toObjectId(id) }).exec()
     if (result.deletedCount === 0) {
