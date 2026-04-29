@@ -8,8 +8,10 @@
  * decorative-only and never binds.
  */
 
-import type { FieldAnimation } from './animation'
+import type { FieldAnimation, LogoAnimation } from './animation'
+import type { LogoSource } from './column'
 import type { FidsField } from './fields'
+import type { StyleRule } from './status'
 
 export type FontFamily = 'board' | 'sans' | 'mono'
 export type TextAlign = 'left' | 'center' | 'right'
@@ -49,6 +51,31 @@ export interface TextElement extends BaseElement {
   fontWeight?: number
   textAlign?: TextAlign
   bind?: FieldBinding
+  /**
+   * Cycling literals — when present and non-empty AND `bind` is unset,
+   * the element renders `cycleValues[tick % length]` and rotates with
+   * the template's `cycleMs` cadence (the same heartbeat that drives
+   * codeshare/translation cycling). Useful for bilingual labels
+   * ("BOARDING" / "MASUK PESAWAT") that aren't a FidsField.
+   *
+   * Precedence: bind > cycleValues > text.
+   */
+  cycleValues?: string[]
+  /**
+   * Static background painted behind the text. Useful for "pill"
+   * shapes (e.g. the REMARK badge) without stacking a separate Rect
+   * element underneath. Status-driven `styleRules` win over this
+   * value when they match.
+   */
+  background?: string
+  /**
+   * Status-driven style overrides. Honoured only when `bind` resolves
+   * to a status field (`remarkStatus`, `overallStatus`,
+   * `carouselStatus`); the renderer reads the active flight's
+   * `FlightStatus`, walks the rules first-match-wins, and applies
+   * `textColor`/`background`/`fontWeight` over the static defaults.
+   */
+  styleRules?: StyleRule[]
 }
 
 export interface LogoElement extends BaseElement {
@@ -60,6 +87,13 @@ export interface LogoElement extends BaseElement {
    *  template's flightNo binding (single source of truth: the
    *  flight-number string itself, IATA derived via split-on-space). */
   syncWithFlightNo?: boolean
+  /** Which flightNo slice drives the cycle. Defaults to `'flightNo'`
+   *  (master + codeshares) when omitted. Mirrors `FidsColumn.logoSource`. */
+  logoSource?: LogoSource
+  /** Entry transition replayed each tick when the cycling IATA changes.
+   *  Same closed set as tabular-column `logoAnimation`. Omitted = no
+   *  animation (`'none'`). */
+  animation?: LogoAnimation
 }
 
 /**

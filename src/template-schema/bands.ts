@@ -63,3 +63,42 @@ export interface DedicatedMainBand {
   bg?: string
   children: FreeformChild[]
 }
+
+/**
+ * SplitAxis — how a multi-row main band lays out its row stamps:
+ *
+ *   'vertical'   columns split left-to-right by a vertical divider
+ *                (gate Double — design ONE column, render `rowCount` of them)
+ *   'horizontal' rows stacked top-to-bottom, divided by a horizontal line
+ *                (carousel — same pattern, different axis; reserved for later)
+ *
+ * Older saved templates predate this field; the renderer treats absent
+ * splitAxis as 'vertical' (the only multi type today is the
+ * dedicatedDoubleGate, which always splits vertically). Future
+ * horizontal consumers (e.g. carousel) must set the field explicitly.
+ */
+export type SplitAxis = 'vertical' | 'horizontal'
+
+/**
+ * DedicatedMultiMainBand — the multi-flight dedicated variant. The
+ * `children` array describes ONE row, authored at row-relative
+ * coordinates (origin = top-left of one row stamp). The canvas stamps
+ * it `rowCount` times along `splitAxis`, separated by `rowGap` and an
+ * optional `rowDivider`. Each stamp resolves bound text + sync logos
+ * against `previewFlights[(previewFlightIndex + rowIdx) % flights.length]`,
+ * giving an N-flight split-screen preview.
+ *
+ * Modelled with the same `children` field name as DedicatedMainBand so
+ * the existing band-walking helpers (findChildContext,
+ * updateFreeformBandIn, layers panel, template-IO asset walker, etc.)
+ * keep working without per-band branches.
+ */
+export interface DedicatedMultiMainBand {
+  height: number
+  rowCount: number
+  rowGap: number
+  splitAxis?: SplitAxis
+  rowDivider?: { color: string; thickness: number }
+  bg?: string
+  children: FreeformChild[]
+}

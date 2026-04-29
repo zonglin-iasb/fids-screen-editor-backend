@@ -143,13 +143,18 @@ export interface FlightStatus {
 }
 
 /**
- * StyleRule — first-match wins. Applied per-cell at render time:
- * the runtime resolves the column's `statusSource`, reads the flight's
- * matching `FlightStatus`, and walks `styleRules` for the first rule
- * whose `when.key` matches.
+ * StyleRule — first-match wins. Applied per-cell (tabular) and per
+ * bound-text element (dedicated) at render time: the runtime resolves
+ * the relevant `FlightStatus`, then walks `styleRules` for the first
+ * rule whose `when.key` matches and applies its overrides.
+ *
+ * `background` is honoured by the dedicated text path only — tabular
+ * cells already paint a row-level zebra/bg and don't currently expose
+ * per-cell backgrounds.
  */
 export interface StyleRule {
   when: { key: RemarkCode }
   textColor?: string
   fontWeight?: number
+  background?: string
 }

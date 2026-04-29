@@ -50,6 +50,13 @@ const fieldBinding = z.object({
   animation: fieldAnimation.optional(),
 })
 
+const styleRule = z.object({
+  when: z.object({ key: remarkCode }),
+  textColor: z.string().optional(),
+  fontWeight: z.number().optional(),
+  background: z.string().optional(),
+})
+
 const rectElement = z.object({
   ...baseElement,
   type: z.literal('rect'),
@@ -66,7 +73,12 @@ const textElement = z.object({
   fontWeight: z.number().optional(),
   textAlign: textAlign.optional(),
   bind: fieldBinding.optional(),
+  cycleValues: z.array(z.string()).optional(),
+  background: z.string().optional(),
+  styleRules: z.array(styleRule).optional(),
 })
+
+const logoSourceEnum = z.enum(['flightNo', 'mainFlight', 'codeshares'])
 
 const logoElement = z.object({
   ...baseElement,
@@ -74,6 +86,8 @@ const logoElement = z.object({
   fill: z.string().optional(),
   iataCode: z.string().optional(),
   syncWithFlightNo: z.boolean().optional(),
+  logoSource: logoSourceEnum.optional(),
+  animation: logoAnimation.optional(),
 })
 
 const clockFormat = z.enum([
@@ -148,18 +162,27 @@ const dedicatedMainBand = z.object({
   children: z.array(freeformChild),
 })
 
+const splitAxis = z.enum(['vertical', 'horizontal'])
+
+const dedicatedMultiMainBand = z.object({
+  height: z.number(),
+  rowCount: z.number().int().positive(),
+  rowGap: z.number().nonnegative(),
+  splitAxis: splitAxis.optional(),
+  rowDivider: z.object({
+    color: z.string(),
+    thickness: z.number().nonnegative(),
+  }).optional(),
+  bg: z.string().optional(),
+  children: z.array(freeformChild),
+})
+
 // ── Column schema ──────────────────────────────────────────────────
 
 const columnCellStyle = z.object({
   fontWeight: z.number().optional(),
   fontSize: z.number().optional(),
   textColor: z.string().optional(),
-})
-
-const styleRule = z.object({
-  when: z.object({ key: remarkCode }),
-  textColor: z.string().optional(),
-  fontWeight: z.number().optional(),
 })
 
 const logoMode = z.enum(['fit', 'fill', 'freeform'])
@@ -218,9 +241,16 @@ const dedicatedTemplate = z.object({
   main: dedicatedMainBand,
 })
 
+const dedicatedMultiTemplate = z.object({
+  ...templateBase,
+  type: z.enum(['dedicatedDoubleGate']),
+  main: dedicatedMultiMainBand,
+})
+
 export const templateSchema = z.discriminatedUnion('type', [
   tabularTemplate,
   dedicatedTemplate,
+  dedicatedMultiTemplate,
 ])
 
 // ── Export envelope ────────────────────────────────────────────────

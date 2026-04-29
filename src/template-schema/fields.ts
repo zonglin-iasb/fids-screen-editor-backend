@@ -326,6 +326,13 @@ export const FIELDS_BY_TYPE: Record<TemplateType, readonly FidsField[]> = {
     'lounge', 'loungeOpens', 'loungeCloses',
     'remarkStatus',
   ],
+  dedicatedDoubleGate: [
+    'flightNo', 'mainFlight', 'codeshares', 'airlineLogo', 'aircraftType', 'destination', 'terminal',
+    'scheduled', 'estimated', 'actual', 'gate',
+    'boardingTime', 'finalCallTime',
+    'lounge', 'loungeOpens', 'loungeCloses',
+    'remarkStatus',
+  ],
   dedicatedBaggage: [
     'flightNo', 'mainFlight', 'codeshares', 'airlineLogo', 'origin', 'terminal',
     'scheduled', 'estimated', 'actual',

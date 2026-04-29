@@ -16,6 +16,7 @@
 import type {
   ColumnHeaderBand,
   DedicatedMainBand,
+  DedicatedMultiMainBand,
   FreeformBand,
   TabularMainBand,
 } from './bands'
@@ -27,6 +28,7 @@ export const TEMPLATE_TYPES = [
   'multiUserBaggage',
   'dedicatedGate',
   'dedicatedBaggage',
+  'dedicatedDoubleGate',
 ] as const
 export type TemplateType = (typeof TEMPLATE_TYPES)[number]
 
@@ -37,7 +39,19 @@ export const TABULAR_TYPES = [
 ] as const
 export type TabularTemplateType = (typeof TABULAR_TYPES)[number]
 
-export const DEDICATED_TYPES = ['dedicatedGate', 'dedicatedBaggage'] as const
+/** Single-flight dedicated types — one freeform main band, no stamping. */
+export const DEDICATED_SINGLE_TYPES = ['dedicatedGate', 'dedicatedBaggage'] as const
+export type DedicatedSingleTemplateType = (typeof DEDICATED_SINGLE_TYPES)[number]
+
+/** Multi-flight dedicated types — band carries one row template stamped N times. */
+export const DEDICATED_MULTI_TYPES = ['dedicatedDoubleGate'] as const
+export type DedicatedMultiTemplateType = (typeof DEDICATED_MULTI_TYPES)[number]
+
+/** Union of all dedicated types — single + multi. */
+export const DEDICATED_TYPES = [
+  ...DEDICATED_SINGLE_TYPES,
+  ...DEDICATED_MULTI_TYPES,
+] as const
 export type DedicatedTemplateType = (typeof DEDICATED_TYPES)[number]
 
 export const SCHEMA_VERSION = 1
@@ -75,17 +89,30 @@ export interface TabularTemplate extends TemplateBase {
 }
 
 export interface DedicatedTemplate extends TemplateBase {
-  type: DedicatedTemplateType
+  type: DedicatedSingleTemplateType
   main: DedicatedMainBand
 }
 
-export type Template = TabularTemplate | DedicatedTemplate
+export interface DedicatedMultiTemplate extends TemplateBase {
+  type: DedicatedMultiTemplateType
+  main: DedicatedMultiMainBand
+}
+
+export type AnyDedicatedTemplate = DedicatedTemplate | DedicatedMultiTemplate
+
+export type Template = TabularTemplate | DedicatedTemplate | DedicatedMultiTemplate
 
 export const isTabular = (t: Template): t is TabularTemplate =>
   (TABULAR_TYPES as readonly string[]).includes(t.type)
 
-export const isDedicated = (t: Template): t is DedicatedTemplate =>
+export const isDedicated = (t: Template): t is AnyDedicatedTemplate =>
   (DEDICATED_TYPES as readonly string[]).includes(t.type)
+
+export const isDedicatedSingle = (t: Template): t is DedicatedTemplate =>
+  (DEDICATED_SINGLE_TYPES as readonly string[]).includes(t.type)
+
+export const isDedicatedMulti = (t: Template): t is DedicatedMultiTemplate =>
+  (DEDICATED_MULTI_TYPES as readonly string[]).includes(t.type)
 
 /** Active column list for the template's current orientation. */
 export function activeColumns(t: TabularTemplate): FidsColumn[] {
@@ -105,6 +132,7 @@ export const TEMPLATE_TYPE_LABEL: Record<TemplateType, string> = {
   multiUserBaggage: 'Multi-user · Baggage',
   dedicatedGate: 'Dedicated · Gate',
   dedicatedBaggage: 'Dedicated · Baggage',
+  dedicatedDoubleGate: 'Dedicated · Gate (Double)',
 }
 
 /**
@@ -125,4 +153,8 @@ export const TEMPLATE_TYPE_TO_DISPLAY_TYPE: Record<TemplateType, number> = {
   multiUserBaggage: 3,
   dedicatedGate: 5,
   dedicatedBaggage: 7,
+  // Backend doesn't yet distinguish single vs. double gate displays —
+  // both map to DisplayType 5 (DedicatedGate). Revisit when the backend
+  // contract grows a dedicatedGateDouble equivalent.
+  dedicatedDoubleGate: 5,
 }
