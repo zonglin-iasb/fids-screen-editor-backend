@@ -13,6 +13,7 @@
  */
 
 import type { FieldAnimation, LogoAnimation } from './animation'
+import type { LogoBucketSize } from './elements'
 import type { FidsField, FieldAlign } from './fields'
 import type { StyleRule } from './status'
 
@@ -68,6 +69,9 @@ export interface FidsColumn {
   logoAnimation?: LogoAnimation
   /** Which flightNo slice drives the logo cycle. Defaults to 'flightNo'. */
   logoSource?: LogoSource
+  /** Which GCS bucket variant to fetch. Auto-picks the smallest variant
+   *  that meets the cell's logoW/logoH when unset. */
+  bucketSize?: LogoBucketSize
 
   // ── Origin / Destination knobs ──
   /** When false, suppresses the "(XXX)" IATA code suffix. Defaults to true. */

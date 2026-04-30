@@ -76,9 +76,15 @@ const textElement = z.object({
   cycleValues: z.array(z.string()).optional(),
   background: z.string().optional(),
   styleRules: z.array(styleRule).optional(),
+  wrap: z.boolean().optional(),
+  lineHeight: z.number().optional(),
+  showAirportCode: z.boolean().optional(),
+  compactNumeric: z.boolean().optional(),
 })
 
 const logoSourceEnum = z.enum(['flightNo', 'mainFlight', 'codeshares'])
+const logoBucketSize = z.enum(['small', 'medium', 'banner'])
+const imageObjectFit = z.enum(['cover', 'contain', 'fill'])
 
 const logoElement = z.object({
   ...baseElement,
@@ -87,7 +93,9 @@ const logoElement = z.object({
   iataCode: z.string().optional(),
   syncWithFlightNo: z.boolean().optional(),
   logoSource: logoSourceEnum.optional(),
+  bucketSize: logoBucketSize.optional(),
   animation: logoAnimation.optional(),
+  objectFit: imageObjectFit.optional(),
 })
 
 const clockFormat = z.enum([
@@ -107,11 +115,12 @@ const clockElement = z.object({
   fontFamily: fontFamily.optional(),
   fontWeight: z.number().optional(),
   textAlign: textAlign.optional(),
+  background: z.string().optional(),
   label: z.string().optional(),
+  labelColor: z.string().optional(),
   pillBg: z.string().optional(),
+  chipBg: z.string().optional(),
 })
-
-const imageObjectFit = z.enum(['cover', 'contain', 'fill'])
 
 const imageElement = z.object({
   ...baseElement,
@@ -162,13 +171,10 @@ const dedicatedMainBand = z.object({
   children: z.array(freeformChild),
 })
 
-const splitAxis = z.enum(['vertical', 'horizontal'])
-
 const dedicatedMultiMainBand = z.object({
   height: z.number(),
   rowCount: z.number().int().positive(),
   rowGap: z.number().nonnegative(),
-  splitAxis: splitAxis.optional(),
   rowDivider: z.object({
     color: z.string(),
     thickness: z.number().nonnegative(),
@@ -206,6 +212,7 @@ const fidsColumn = z.object({
   logoOffsetY: z.number().optional(),
   logoAnimation: logoAnimation.optional(),
   logoSource: logoSource.optional(),
+  bucketSize: logoBucketSize.optional(),
   showAirportCode: z.boolean().optional(),
   rotateTranslations: z.boolean().optional(),
   scrollDurationSec: z.number().optional(),
@@ -243,7 +250,7 @@ const dedicatedTemplate = z.object({
 
 const dedicatedMultiTemplate = z.object({
   ...templateBase,
-  type: z.enum(['dedicatedDoubleGate']),
+  type: z.enum(['dedicatedDoubleGate', 'dedicatedGateEntry', 'dedicatedCarousel']),
   main: dedicatedMultiMainBand,
 })
 

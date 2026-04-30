@@ -18,6 +18,7 @@ import type {
   DedicatedMainBand,
   DedicatedMultiMainBand,
   FreeformBand,
+  SplitAxis,
   TabularMainBand,
 } from './bands'
 import type { FidsColumn } from './column'
@@ -29,6 +30,8 @@ export const TEMPLATE_TYPES = [
   'dedicatedGate',
   'dedicatedBaggage',
   'dedicatedDoubleGate',
+  'dedicatedGateEntry',
+  'dedicatedCarousel',
 ] as const
 export type TemplateType = (typeof TEMPLATE_TYPES)[number]
 
@@ -44,7 +47,7 @@ export const DEDICATED_SINGLE_TYPES = ['dedicatedGate', 'dedicatedBaggage'] as c
 export type DedicatedSingleTemplateType = (typeof DEDICATED_SINGLE_TYPES)[number]
 
 /** Multi-flight dedicated types — band carries one row template stamped N times. */
-export const DEDICATED_MULTI_TYPES = ['dedicatedDoubleGate'] as const
+export const DEDICATED_MULTI_TYPES = ['dedicatedDoubleGate', 'dedicatedGateEntry', 'dedicatedCarousel'] as const
 export type DedicatedMultiTemplateType = (typeof DEDICATED_MULTI_TYPES)[number]
 
 /** Union of all dedicated types — single + multi. */
@@ -114,6 +117,19 @@ export const isDedicatedSingle = (t: Template): t is DedicatedTemplate =>
 export const isDedicatedMulti = (t: Template): t is DedicatedMultiTemplate =>
   (DEDICATED_MULTI_TYPES as readonly string[]).includes(t.type)
 
+/**
+ * Layout direction for a dedicated-multi template's row stamping.
+ * Replaces the deprecated `band.splitAxis` field — direction now lives
+ * with the template type, not the band.
+ */
+export function dedicatedSplitAxis(type: DedicatedMultiTemplateType): SplitAxis {
+  switch (type) {
+    case 'dedicatedDoubleGate': return 'vertical'
+    case 'dedicatedGateEntry':  return 'horizontal'
+    case 'dedicatedCarousel':   return 'horizontal'
+  }
+}
+
 /** Active column list for the template's current orientation. */
 export function activeColumns(t: TabularTemplate): FidsColumn[] {
   return t.orientation === 'portrait' ? t.columnsPortrait : t.columnsLandscape
@@ -133,6 +149,8 @@ export const TEMPLATE_TYPE_LABEL: Record<TemplateType, string> = {
   dedicatedGate: 'Dedicated · Gate',
   dedicatedBaggage: 'Dedicated · Baggage',
   dedicatedDoubleGate: 'Dedicated · Gate (Double)',
+  dedicatedGateEntry: 'Dedicated · Gate Entry',
+  dedicatedCarousel: 'Dedicated · Carousel',
 }
 
 /**
@@ -153,8 +171,10 @@ export const TEMPLATE_TYPE_TO_DISPLAY_TYPE: Record<TemplateType, number> = {
   multiUserBaggage: 3,
   dedicatedGate: 5,
   dedicatedBaggage: 7,
-  // Backend doesn't yet distinguish single vs. double gate displays —
-  // both map to DisplayType 5 (DedicatedGate). Revisit when the backend
-  // contract grows a dedicatedGateDouble equivalent.
+  // POS DisplayType doesn't yet distinguish single vs. double-gate vs.
+  // gate-entry displays — they all map to 5 (DedicatedGate). Revisit
+  // when the POS contract adds dedicated variants.
   dedicatedDoubleGate: 5,
+  dedicatedGateEntry: 5,
+  dedicatedCarousel: 7,
 }

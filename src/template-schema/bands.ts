@@ -68,14 +68,14 @@ export interface DedicatedMainBand {
  * SplitAxis — how a multi-row main band lays out its row stamps:
  *
  *   'vertical'   columns split left-to-right by a vertical divider
- *                (gate Double — design ONE column, render `rowCount` of them)
+ *                (dedicatedDoubleGate — design ONE column, render `rowCount`)
  *   'horizontal' rows stacked top-to-bottom, divided by a horizontal line
- *                (carousel — same pattern, different axis; reserved for later)
+ *                (dedicatedGateEntry — design ONE row, render `rowCount`)
  *
- * Older saved templates predate this field; the renderer treats absent
- * splitAxis as 'vertical' (the only multi type today is the
- * dedicatedDoubleGate, which always splits vertically). Future
- * horizontal consumers (e.g. carousel) must set the field explicitly.
+ * The axis is derived from the template type via `dedicatedSplitAxis()`
+ * in template.ts; it is NOT stored on the band. Older saved templates
+ * may still have a `splitAxis` field — Zod strips it on parse and the
+ * renderer ignores it.
  */
 export type SplitAxis = 'vertical' | 'horizontal'
 
@@ -83,7 +83,8 @@ export type SplitAxis = 'vertical' | 'horizontal'
  * DedicatedMultiMainBand — the multi-flight dedicated variant. The
  * `children` array describes ONE row, authored at row-relative
  * coordinates (origin = top-left of one row stamp). The canvas stamps
- * it `rowCount` times along `splitAxis`, separated by `rowGap` and an
+ * it `rowCount` times along the axis derived from the template type
+ * (`dedicatedSplitAxis(template.type)`), separated by `rowGap` and an
  * optional `rowDivider`. Each stamp resolves bound text + sync logos
  * against `previewFlights[(previewFlightIndex + rowIdx) % flights.length]`,
  * giving an N-flight split-screen preview.
@@ -97,7 +98,6 @@ export interface DedicatedMultiMainBand {
   height: number
   rowCount: number
   rowGap: number
-  splitAxis?: SplitAxis
   rowDivider?: { color: string; thickness: number }
   bg?: string
   children: FreeformChild[]

@@ -16,6 +16,18 @@ import type { StyleRule } from './status'
 export type FontFamily = 'board' | 'sans' | 'mono'
 export type TextAlign = 'left' | 'center' | 'right'
 
+/**
+ * LogoBucketSize — which pre-rasterized GCS variant a LogoElement
+ * resolves against. Three fixed buckets keyed by pixel dimensions:
+ *   'small'  — 180×45
+ *   'medium' — 350×90
+ *   'banner' — 1366×200
+ * The editor's `airlineLogo.ts` is the source-of-truth for the dim
+ * mapping; backend just stores the discriminator. Mirrors the
+ * frontend's `LogoBucketSize` so wire validation can pass it through.
+ */
+export type LogoBucketSize = 'small' | 'medium' | 'banner'
+
 export interface BaseElement {
   id: string
   x: number
@@ -76,6 +88,32 @@ export interface TextElement extends BaseElement {
    * `textColor`/`background`/`fontWeight` over the static defaults.
    */
   styleRules?: StyleRule[]
+  /**
+   * When true the renderer wraps overflowing text inside the authored
+   * box (whiteSpace: pre-wrap, overflowWrap: break-word) and clips
+   * vertically. Defaults to false (legacy single-line nowrap).
+   *
+   * Trade-off: cycle animations are bypassed in wrap mode because
+   * FadeText / SlideText / SplitFlap assume a single line. Cycling
+   * itself still works — the renderer shows the active value.
+   */
+  wrap?: boolean
+  /** wrap-only: line-height multiplier. Defaults to 1.2 in the
+   *  renderer when wrap is on. */
+  lineHeight?: number
+  /**
+   * Mirrors `FidsColumn.showAirportCode`. When `bind.field` is
+   * `'destination'` or `'origin'`, setting this to `false` drops the
+   * `(IATA)` suffix and renders just the city. Undefined / true keeps
+   * legacy `City (IATA)` formatting.
+   */
+  showAirportCode?: boolean
+  /**
+   * Mirrors `FidsColumn.compactNumeric`. When true, the renderer strips
+   * leading zeros from numeric segments of the resolved value
+   * (e.g. "B011" → "B11"). Useful for short gate / time labels.
+   */
+  compactNumeric?: boolean
 }
 
 export interface LogoElement extends BaseElement {
@@ -90,10 +128,16 @@ export interface LogoElement extends BaseElement {
   /** Which flightNo slice drives the cycle. Defaults to `'flightNo'`
    *  (master + codeshares) when omitted. Mirrors `FidsColumn.logoSource`. */
   logoSource?: LogoSource
+  /** Which GCS bucket variant to fetch. When unset, the renderer
+   *  auto-picks the smallest variant that meets the element's w/h. */
+  bucketSize?: LogoBucketSize
   /** Entry transition replayed each tick when the cycling IATA changes.
    *  Same closed set as tabular-column `logoAnimation`. Omitted = no
    *  animation (`'none'`). */
   animation?: LogoAnimation
+  /** How the resolved logo image sits inside its element box. Default
+   *  render = `'contain'`. */
+  objectFit?: ImageObjectFit
 }
 
 /**
@@ -187,11 +231,20 @@ export interface ClockElement extends BaseElement {
   fontFamily?: FontFamily
   fontWeight?: number
   textAlign?: TextAlign
+  /** Box background for the whole clock element (any variant).
+   *  Undefined = transparent (legacy behavior). */
+  background?: string
   /** editorial-only: label shown above the value. Auto-derived from
    *  format when omitted (LOCAL / TODAY / DATE). */
   label?: string
+  /** editorial-only: label tint. Falls back to textColor at 70% opacity. */
+  labelColor?: string
   /** pillChip-only: pill background. Defaults to '#0A0A0A'. */
   pillBg?: string
+  /** splitFlap-only: chip base color. Renderer derives a 3-stop
+   *  gradient (lighter top, dark seam, base bottom) so the user picks
+   *  one color and keeps the mechanical look. Defaults to '#1A1A1A'. */
+  chipBg?: string
 }
 
 export type CanvasElement = RectElement | TextElement | LogoElement | ClockElement | ImageElement
