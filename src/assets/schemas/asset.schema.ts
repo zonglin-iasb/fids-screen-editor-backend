@@ -32,6 +32,13 @@ export class AssetEntity {
 
   @Prop({ required: true, type: String, enum: ASSET_CATEGORIES, default: 'other' })
   category: AssetCategory
+
+  /** Provenance — where this asset came from when imported from another
+   *  system. Null for direct uploads via the editor; set by import
+   *  scripts or migrations. Free-form string (often a path like
+   *  `FIDFCRCM2/<uuid>`); not constrained because legacy systems vary. */
+  @Prop({ type: String, default: null })
+  sourceRef: string | null
 }
 
 export const AssetSchema = SchemaFactory.createForClass(AssetEntity)

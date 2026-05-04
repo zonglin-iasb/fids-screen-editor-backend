@@ -3,9 +3,11 @@ import { MongooseModule } from '@nestjs/mongoose'
 import { TemplateEntity, TemplateSchema } from './schemas/template.schema'
 import { TemplatesController } from './templates.controller'
 import { TemplatesService } from './templates.service'
+import { StorageModule } from '../storage/storage.module'
 
 @Module({
   imports: [
+    StorageModule,
     MongooseModule.forFeature([{ name: TemplateEntity.name, schema: TemplateSchema }]),
   ],
   controllers: [TemplatesController],

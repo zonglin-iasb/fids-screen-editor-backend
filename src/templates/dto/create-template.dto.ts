@@ -12,6 +12,9 @@ import { templateSchema } from '../../template-schema'
 export const createTemplateSchema = z.object({
   name: z.string().min(1, 'name must not be empty'),
   body: templateSchema,
+  /** Optional provenance — populated by import scripts; the editor's
+   *  POST flow leaves it absent. */
+  sourceRef: z.string().nullable().optional(),
 })
 
 export type CreateTemplateDto = z.infer<typeof createTemplateSchema>

@@ -11,7 +11,6 @@ import {
   Post,
   Query,
   Res,
-  StreamableFile,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common'
@@ -57,6 +56,7 @@ export class AssetsController {
   upload(
     @UploadedFile() file: Express.Multer.File | undefined,
     @Query('category') category?: string,
+    @Query('sourceRef') sourceRef?: string,
   ): Promise<AssetMetaDto> {
     if (!file) {
       throw new BadRequestException('Expected a multipart/form-data field named "file"')
@@ -64,20 +64,28 @@ export class AssetsController {
     const cat = ASSET_CATEGORIES.includes(category as AssetCategory)
       ? (category as AssetCategory)
       : undefined
-    return this.assets.upload(file, cat)
+    return this.assets.upload(file, cat, sourceRef)
   }
 
   @Get(':id/raw')
-  async raw(@Param('id') id: string, @Res({ passthrough: true }) res: Response): Promise<StreamableFile> {
+  async raw(@Param('id') id: string, @Res() res: Response): Promise<void> {
+    // Cloud mode: storage layer hands us a signed URL — 302 there so
+    // bytes flow direct from GCS to the browser, bypassing Node.
+    const redirectUrl = await this.assets.getRedirectUrl(id)
+    if (redirectUrl) {
+      // Cap browser caching of the redirect under the signed URL TTL
+      // so a stale 302 doesn't outlive the URL it points to.
+      res.setHeader('Cache-Control', 'private, max-age=300')
+      res.redirect(302, redirectUrl)
+      return
+    }
+
+    // On-prem mode: stream bytes through the API.
     const result = await this.assets.getStream(id)
     if (!result) throw new NotFoundException(`Asset ${id} not found`)
-    res.set({
-      'Content-Type': result.mime,
-      // Modest cache so renderer screens don't hammer the API; can be
-      // bumped once we have content-addressable storage / etags.
-      'Cache-Control': 'public, max-age=300',
-    })
-    return new StreamableFile(result.stream as never)
+    res.setHeader('Content-Type', result.mime)
+    res.setHeader('Cache-Control', 'public, max-age=300')
+    result.stream.pipe(res)
   }
 
   @Patch(':id')

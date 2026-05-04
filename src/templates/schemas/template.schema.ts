@@ -1,10 +1,9 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
-import { HydratedDocument, SchemaTypes } from 'mongoose'
+import { HydratedDocument } from 'mongoose'
 import {
   ORIENTATIONS,
   TEMPLATE_TYPES,
   type Orientation,
-  type Template,
   type TemplateType,
 } from '../../template-schema'
 
@@ -14,14 +13,12 @@ export const TEMPLATE_STATUSES: readonly TemplateStatus[] = ['draft', 'published
 export type TemplateDocument = HydratedDocument<TemplateEntity>
 
 /**
- * TemplateEntity — the persisted shape. The full editor template body
- * is stored as `Mixed` because the discriminated union of bands +
- * elements doesn't map cleanly to a static Mongoose schema and we'd be
- * duplicating validation that zod already does at the HTTP boundary.
- *
- * `name`, `type`, `orientation`, `status` are denormalized from `body`
- * onto the document so the list endpoint can return metadata without
- * walking each body. The service keeps these in sync at write time.
+ * TemplateEntity — Mongo-side metadata for a template. The actual
+ * template JSON (bands, elements, etc.) lives in the storage backend
+ * keyed by `_id`; this document holds only the queryable fields that
+ * power the library list and routing decisions. The service keeps the
+ * denormalized `type` / `orientation` / `schemaVersion` in sync with
+ * the body at write time.
  */
 @Schema({ collection: 'templates', timestamps: true, versionKey: false })
 export class TemplateEntity {
@@ -40,11 +37,14 @@ export class TemplateEntity {
   @Prop({ required: true, type: Number })
   schemaVersion: number
 
-  @Prop({ required: true, type: SchemaTypes.Mixed })
-  body: Template
-
   @Prop({ type: Date, default: null })
   publishedAt: Date | null
+
+  /** Provenance — where this template came from when imported from
+   *  another system. Null for templates authored directly in the editor;
+   *  set by import scripts or migrations. Free-form string. */
+  @Prop({ type: String, default: null })
+  sourceRef: string | null
 }
 
 export const TemplateSchema = SchemaFactory.createForClass(TemplateEntity)

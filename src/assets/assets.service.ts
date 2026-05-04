@@ -15,7 +15,7 @@ import {
 } from '../template-schema/asset'
 import { AssetEntity, type AssetDocument } from './schemas/asset.schema'
 import type { UpdateAssetDto } from './dto/update-asset.dto'
-import { IStorageService, STORAGE_SERVICE } from '../storage/storage.service'
+import { ASSET_STORAGE_SERVICE, IStorageService } from '../storage/storage.service'
 
 /**
  * AssetMetaDto — response shape for the editor's library list. Mirrors
@@ -34,6 +34,8 @@ export interface AssetMetaDto {
   category: AssetCategory
   createdAt: number
   url: string
+  /** Provenance — null for direct uploads; non-null for imports. */
+  sourceRef: string | null
 }
 
 @Injectable()
@@ -44,7 +46,7 @@ export class AssetsService {
   constructor(
     @InjectModel(AssetEntity.name)
     private readonly model: Model<AssetEntity>,
-    @Inject(STORAGE_SERVICE)
+    @Inject(ASSET_STORAGE_SERVICE)
     private readonly storage: IStorageService,
     config: ConfigService,
   ) {
@@ -65,6 +67,7 @@ export class AssetsService {
   async upload(
     file: Express.Multer.File,
     category: AssetCategory | undefined,
+    sourceRef?: string | null,
   ): Promise<AssetMetaDto> {
     if (!file?.buffer || file.size === 0) {
       throw new Error('No file uploaded')
@@ -74,22 +77,33 @@ export class AssetsService {
       ? (category as AssetCategory)
       : 'other'
 
-    // Mongo mints the _id; we use that as the storage key so the meta
-    // record and the bytes stay in lockstep.
+    // Pre-mint the _id so we can compute sourceRef before the doc is
+    // written. Caller-supplied sourceRef wins (e.g. import scripts);
+    // otherwise we record where the bytes actually land in storage.
+    const _id = new Types.ObjectId()
+    const id = String(_id)
+    const resolvedSourceRef = sourceRef ?? this.storage.getStorageRef(id)
+
     const created = await this.model.create({
+      _id,
       name: file.originalname,
       mime: file.mimetype || 'application/octet-stream',
       size: file.size,
       width: dims.width,
       height: dims.height,
       category: cat,
+      sourceRef: resolvedSourceRef,
     })
     try {
-      await this.storage.put(String(created._id), file.buffer)
+      await this.storage.put(
+        id,
+        file.buffer,
+        file.mimetype || 'application/octet-stream',
+      )
     } catch (err) {
       // Storage write failed — roll back the meta record so we don't
       // leave a dangling pointer to nothing.
-      await this.model.deleteOne({ _id: created._id }).exec()
+      await this.model.deleteOne({ _id }).exec()
       throw err
     }
     return this.toMeta(created)
@@ -106,10 +120,24 @@ export class AssetsService {
     return { stream, mime: doc.mime }
   }
 
+  /**
+   * If the storage backend prefers a client redirect (e.g. signed GCS
+   * URL), return that URL. Returns null when:
+   *   - the asset id has no Mongo record, OR
+   *   - the backend prefers streaming (LocalFs always lands here).
+   * The controller falls back to getStream() in the second case.
+   */
+  async getRedirectUrl(id: string): Promise<string | null> {
+    const doc = await this.findByIdOrNull(id)
+    if (!doc) return null
+    return this.storage.getReadUrl(id)
+  }
+
   async update(id: string, dto: UpdateAssetDto): Promise<AssetMetaDto> {
     const doc = await this.findByIdOrThrow(id)
     if (dto.name !== undefined) doc.name = dto.name.trim() || doc.name
     if (dto.category !== undefined) doc.category = dto.category
+    if (dto.sourceRef !== undefined) doc.sourceRef = dto.sourceRef
     await doc.save()
     return this.toMeta(doc)
   }
@@ -181,6 +209,7 @@ export class AssetsService {
       category: doc.category,
       createdAt: toMs(createdAt) ?? 0,
       url: this.resolveUrl(id),
+      sourceRef: doc.sourceRef ?? null,
     }
   }
 }

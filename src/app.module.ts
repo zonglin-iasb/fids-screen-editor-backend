@@ -22,9 +22,24 @@ import { TemplatesModule } from './templates/templates.module'
     }),
     MongooseModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        uri: config.get<string>('MONGO_URI'),
-      }),
+      useFactory: (config: ConfigService) => {
+        // Cloud and on-prem each get their own Mongo database so that
+        // asset records can never reference bytes that don't exist in
+        // the active storage backend. In production each deployment
+        // already has its own Mongo instance, so this only matters for
+        // local dev where both modes hit the same server — but the
+        // override (MONGO_DB_NAME) lets prod pin an explicit name.
+        const explicit = config.get<string>('MONGO_DB_NAME')
+        const mode = (config.get<string>('DEPLOYMENT_MODE') ?? '')
+          .trim()
+          .toLowerCase()
+        const isOnPrem = mode === 'on-prem' || mode === 'onprem'
+        const dbName = explicit || (isOnPrem ? 'screen-editor-onprem' : 'screen-editor-cloud')
+        return {
+          uri: config.get<string>('MONGO_URI'),
+          dbName,
+        }
+      },
     }),
     HealthModule,
     TemplatesModule,

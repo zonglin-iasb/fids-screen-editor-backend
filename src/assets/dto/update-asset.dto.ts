@@ -2,9 +2,10 @@ import { z } from 'zod'
 import { ASSET_CATEGORIES } from '../../template-schema/asset'
 
 /**
- * UpdateAssetDto — body for PATCH /assets/:id. Both fields optional;
- * sending neither is a no-op (still bumps `updatedAt`). Unknown
- * categories are rejected with a path-based 400.
+ * UpdateAssetDto — body for PATCH /assets/:id. All fields optional;
+ * sending none is rejected. Unknown categories are rejected with a
+ * path-based 400. `sourceRef` accepts null explicitly so callers can
+ * clear a previously-set provenance ref.
  */
 export const updateAssetSchema = z
   .object({
@@ -15,9 +16,14 @@ export const updateAssetSchema = z
         ...(typeof ASSET_CATEGORIES)[number][],
       ])
       .optional(),
+    sourceRef: z.string().nullable().optional(),
   })
-  .refine((v) => v.name !== undefined || v.category !== undefined, {
-    message: 'one of name or category must be provided',
-  })
+  .refine(
+    (v) =>
+      v.name !== undefined ||
+      v.category !== undefined ||
+      v.sourceRef !== undefined,
+    { message: 'one of name, category, or sourceRef must be provided' },
+  )
 
 export type UpdateAssetDto = z.infer<typeof updateAssetSchema>

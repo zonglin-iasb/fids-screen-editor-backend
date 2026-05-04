@@ -7,3 +7,8 @@ dist/
 
 # Local asset bytes for the POC; the real backend will write to GCS.
 uploads/
+
+# GCP service-account keys
+*service_account*.json
+com-industronics-*.json
+**/gcp-key*.json
